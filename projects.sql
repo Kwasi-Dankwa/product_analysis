@@ -84,4 +84,83 @@ SELECT 'Offices',
        (SELECT COUNT(*) FROM pragma_table_info('Offices')),
        (SELECT COUNT(*) FROM Offices);
 
+-- Adressing the first question --
+-- Which Products SHould we order more or less off ? -- 
+
+SELECT 
+    p.productCode, 
+    ROUND(
+        (SELECT COUNT(*) 
+         FROM orderdetails od 
+         WHERE od.productCode = p.productCode) / 
+        (SELECT SUM(od.quantityOrdered) 
+         FROM orderdetails od 
+         WHERE od.productCode = p.productCode), 2) AS low_stock
+FROM 
+    products p
+GROUP BY 
+    p.productCode
+ORDER BY 
+    low_stock DESC
+LIMIT 10;
+
+-- product performance for each product join tables--
+SELECT 
+    p.productCode, 
+    SUM(od.quantityOrdered * p.buyPrice) AS product_performance
+FROM 
+    products p
+JOIN 
+    orderdetails od
+    ON p.productCode = od.productCode
+GROUP BY 
+    p.productCode
+ORDER BY 
+    product_performance DESC
+LIMIT 10;
+
+-- combining tables using cte --
+WITH low_stock_products AS (
+    SELECT 
+        p.productCode, 
+        p.productName,
+        ROUND(od.num_orders / od.total_quantity, 2) AS low_stock
+    FROM 
+        products p
+    JOIN (
+        SELECT 
+            productCode, 
+            COUNT(*) AS num_orders, 
+            SUM(quantityOrdered) AS total_quantity
+        FROM 
+            orderdetails
+        GROUP BY 
+            productCode
+    ) od ON p.productCode = od.productCode
+),
+top_performing_products AS (
+    SELECT 
+        p.productCode, 
+        SUM(od.quantityOrdered * p.buyPrice) AS product_performance
+    FROM 
+        products p
+    JOIN 
+        orderdetails od ON p.productCode = od.productCode
+    GROUP BY 
+        p.productCode
+    ORDER BY 
+        product_performance DESC
+    LIMIT 10
+)
+SELECT 
+    lsp.productCode, 
+    lsp.productName,
+    lsp.low_stock
+FROM 
+    low_stock_products lsp
+WHERE 
+    lsp.productCode IN (SELECT productCode FROM top_performing_products)
+ORDER BY 
+    lsp.low_stock DESC;
+
 	   
