@@ -163,4 +163,15 @@ WHERE
 ORDER BY 
     lsp.low_stock DESC;
 
+-- Q2 Matching marketing and communication strategies to customer behavior --
+
+SELECT c.customerNumber, 
+       c.customerName,
+       SUM(od.quantityOrdered * (od.priceEach - p.buyPrice)) AS totalProfit
+  FROM customers c
+  JOIN orders o ON c.customerNumber = o.customerNumber
+  JOIN orderdetails od ON o.orderNumber = od.orderNumber
+  JOIN products p ON od.productCode = p.productCode
+GROUP BY c.customerNumber, c.customerName;
+
 	   
